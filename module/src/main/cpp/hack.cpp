@@ -10,6 +10,7 @@
 #include <string>
 #include <ios>
 #include <iosfwd>
+#include <fstream>
 #include <cstdio>
 #include <unistd.h>
 #include <sys/system_properties.h>
