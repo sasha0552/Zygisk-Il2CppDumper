@@ -7,6 +7,8 @@
 #include "log.h"
 #include "xdl.h"
 #include <cstring>
+#include <string>
+#include <ios>
 #include <cstdio>
 #include <unistd.h>
 #include <sys/system_properties.h>
