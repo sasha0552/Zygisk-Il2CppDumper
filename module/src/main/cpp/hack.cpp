@@ -22,6 +22,40 @@ static int GetAndroidApiLevel() {
     return atoi(prop_value);
 }
 
+unsigned long get_module_base(const char * module_name) {
+    FILE * fp;
+    unsigned long addr = 0;
+    char * pch;
+    char filename[32] = "/proc/self/maps";
+    char line[1024];
+    fp = fopen(filename, "r");
+    if (fp != NULL) {
+        while (fgets(line, sizeof(line), fp)) {
+            if (strstr(line, module_name)) {
+                pch = strtok(line, "-");
+                addr = strtoul(pch, NULL, 16);
+                if (addr == 0x8000) addr = 0;
+                break;
+            }
+        }
+        fclose(fp);
+    }
+    return addr;
+}
+
+void * hack_thread(const char * game_data_dir) {
+    unsigned long base_addr;
+    base_addr = get_module_base("libil2cpp.so");
+    unsigned long hack_addr = base_addr + 0x4EBF650; //找到全局变量
+    auto outPath = std::string(game_data_dir).append("/files/data.bin");
+    std::ofstream outfile(outPath, std::ios::binary | std::ios::out);
+    if (outfile.is_open()) {
+        char * variable_data = reinterpret_cast < char * > (hack_addr);
+        outfile.write(variable_data, 12460232); // 自己看文件大小写
+        outfile.close();
+    }
+}
+
 void hack_start(const char *game_data_dir) {
     bool load = false;
     for (int i = 0; i < 10; i++) {
