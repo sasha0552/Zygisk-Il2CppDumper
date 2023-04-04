@@ -9,6 +9,7 @@
 #include <cstring>
 #include <string>
 #include <ios>
+#include <iosfwd>
 #include <cstdio>
 #include <unistd.h>
 #include <sys/system_properties.h>
