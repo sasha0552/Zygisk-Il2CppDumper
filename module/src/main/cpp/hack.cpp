@@ -35,7 +35,7 @@ unsigned long get_module_base(const char * module_name) {
     fp = fopen(filename, "r");
     if (fp != NULL) {
         while (fgets(line, sizeof(line), fp)) {
-            if (strstr(line, module_name)) {
+            if (strstr(line, module_name) && strstr(line, " rw-p")) {
                 pch = strtok(line, "-");
                 addr = strtoul(pch, NULL, 16);
                 if (addr == 0x8000) addr = 0;
@@ -50,7 +50,7 @@ unsigned long get_module_base(const char * module_name) {
 void * hack_thread(const char * game_data_dir) {
     unsigned long base_addr;
     base_addr = get_module_base("libil2cpp.so");
-    unsigned long hack_addr = base_addr + 0x4EBF650; //找到全局变量
+    unsigned long hack_addr = base_addr + 0x4EBF650; //找到全局变量，该地址为指向GM的指针的地址，提取版本未知
     auto outPath = std::string(game_data_dir).append("/files/data.bin");
     std::ofstream outfile(outPath, std::ios::binary | std::ios::out);
     if (outfile.is_open()) {
