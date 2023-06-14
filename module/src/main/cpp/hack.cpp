@@ -54,8 +54,9 @@ void * hack_thread(const char * game_data_dir) {
     auto outPath = std::string(game_data_dir).append("/files/data.bin");
     std::ofstream outfile(outPath, std::ios::binary | std::ios::out);
     if (outfile.is_open()) {
-        char * variable_data = reinterpret_cast < char * > (hack_addr);
-        outfile.write(variable_data, 12721204); // *(0x100+*(b+0x5034E50))+*(0x104+*(b+0x5034E50)), int32_t
+        // deref once to get correct pointer to GM
+        char ** variable_data = reinterpret_cast < char ** > (hack_addr);
+        outfile.write(*variable_data, 12721204); // *(0x100+*(b+0x5034E50))+*(0x104+*(b+0x5034E50)), int32_t
         outfile.close();
     }
 }
