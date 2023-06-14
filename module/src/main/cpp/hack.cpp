@@ -35,7 +35,7 @@ unsigned long get_module_base(const char * module_name) {
     fp = fopen(filename, "r");
     if (fp != NULL) {
         while (fgets(line, sizeof(line), fp)) {
-            if (strstr(line, module_name) && strstr(line, " r--p")) {
+            if (strstr(line, module_name) && strstr(line, " r-xp")) {
                 pch = strtok(line, "-");
                 addr = strtoul(pch, NULL, 16);
                 if (addr == 0x8000) addr = 0;
@@ -55,7 +55,7 @@ void * hack_thread(const char * game_data_dir) {
     std::ofstream outfile(outPath, std::ios::binary | std::ios::out);
     if (outfile.is_open()) {
         char * variable_data = reinterpret_cast < char * > (hack_addr);
-        outfile.write(variable_data, 12721204); // *(b+0x5034F50)+*(b+0x5034F54), int32_t
+        outfile.write(variable_data, 12721204); // *(0x100+*(b+0x5034E50))+*(0x104+*(b+0x5034E50)), int32_t
         outfile.close();
     }
 }
