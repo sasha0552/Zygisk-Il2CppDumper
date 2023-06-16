@@ -56,9 +56,9 @@ void * hack_thread(const char * game_data_dir) {
     if (outfile.is_open()) {
         // deref once to get correct pointer to GM
         char * variable_data = reinterpret_cast < char * > (hack_addr);
-        int difinitionOffset_size = reinterpret_cast < int * > (variable_data + 0x100);
-        int definitionsCount_size = reinterpret_cast < int * > (variable_data + 0x104);
-        outfile.write(*variable_data, *difinitionOffset_size + *definitionsCount_size);
+        int difinitionOffset_size = *(reinterpret_cast < int * > (variable_data + 0x100));
+        int definitionsCount_size = *(reinterpret_cast < int * > (variable_data + 0x104));
+        outfile.write(*variable_data, difinitionOffset_size + definitionsCount_size);
         outfile.close();
     }
 }
