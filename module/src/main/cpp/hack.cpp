@@ -45,7 +45,10 @@ unsigned long get_module_base(const char * module_name) {
 void * hack_thread(const char * game_data_dir) {
     unsigned long base_addr;
     base_addr = get_module_base("libil2cpp.so");
-    char * hack_addr = *(char **)(base_addr + 0x5015E88); //找到全局变量，该地址为指向GM的指针的地址，提取版本 Phigros 3.1.0 TaptapCN
+    
+    // Phigros 3.1.0 TaptapCN 0x5015E88
+    // 指向GM的指针的地址
+    char * hack_addr = *(char **)(base_addr + 0x5015E88); 
     auto outPath = std::string(game_data_dir).append("/files/global-metadata.dat");
     std::ofstream outfile(outPath, std::ios::binary | std::ios::out);
     if (outfile.is_open()) {
