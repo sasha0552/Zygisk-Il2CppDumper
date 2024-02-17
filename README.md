@@ -1,5 +1,12 @@
 # Zygisk-Il2CppDumper
+
 Il2CppDumper with Zygisk, dump il2cpp data at runtime, can bypass protection, encryption and obfuscation.
+
+写死了地址来导出一些初始化完成后会清零解密好的GM的游戏
+
+获取地址：
+
+![image](https://github.com/000ylop/Zygisk-Il2CppDumper/assets/34085039/fea4354e-f42a-46f2-80dc-f57cf5210fe2)
 
 中文说明请戳[这里](README.zh-CN.md)
 
