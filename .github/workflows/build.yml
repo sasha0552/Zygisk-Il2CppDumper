@@ -1,7 +1,10 @@
 name: Build
 on:
-  push:
-    branches: [ "master" ]
+  workflow_dispatch:
+      inputs:
+        gm_addr:
+          description: "Address of the Global Metadata pointer:"
+          required: true
 
 jobs:
   build:
@@ -17,6 +20,7 @@ jobs:
         chmod +x ./gradlew
         sed -i 's/moduleDescription = "/moduleDescription = "(com.PigeonGames.Phigros) /g' module.gradle
         sed -i "s/com.game.packagename/com.PigeonGames.Phigros/g" module/src/main/cpp/game.h
+        sed -i "s/0x000000/${{ github.event.inputs.gm_addr }}/g" module/src/main/cpp/hack.h
         ./gradlew :module:assembleRelease
     - uses: actions/upload-artifact@v3
       with:

@@ -4,6 +4,12 @@ Il2CppDumper with Zygisk, dump il2cpp data at runtime, can bypass protection, en
 
 写死了地址来导出一些初始化完成后会清零解密好的GM的游戏
 
+## Phigros TaptapCN Arm64
+
+- 3.1.0 0x5015E88
+- 3.4.2 0x4578128
+- 3.4.3 0x457AF30
+
 获取地址：
 
 ![image](https://github.com/000ylop/Zygisk-Il2CppDumper/assets/34085039/fea4354e-f42a-46f2-80dc-f57cf5210fe2)
