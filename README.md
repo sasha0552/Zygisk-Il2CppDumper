@@ -8,6 +8,7 @@ Il2CppDumper with Zygisk, dump il2cpp data at runtime, can bypass protection, en
 
 Version | Address
 --------|--------
+3.8.0   | 0x4597F38
 3.6.0   | 0x459B7C0
 3.5.2   | 0x458EA08
 3.5.1   | 0x45936B8
