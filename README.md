@@ -4,6 +4,8 @@ Il2CppDumper with Zygisk, dump il2cpp data at runtime, can bypass protection, en
 
 写死了地址来导出一些初始化完成后会清零解密好的GM的游戏
 
+自动提取GM地址：[gm_addr_extract](https://github.com/mokurin000/gm_addr_extract)
+
 ## Phigros TaptapCN Arm64
 
 Version | Address
