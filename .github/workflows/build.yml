@@ -5,6 +5,11 @@ on:
         gm_addr:
           description: "Address of the Global Metadata pointer:"
           required: true
+        package_name:
+          description: "Package name of target android app"
+          default: "com.PigeonGames.Phigros"
+          required: true
+
 
 jobs:
   build:
@@ -18,8 +23,8 @@ jobs:
         cache: gradle
     - run: |
         chmod +x ./gradlew
-        sed -i 's/moduleDescription = "/moduleDescription = "(com.PigeonGames.Phigros) /g' module.gradle
-        sed -i "s/com.game.packagename/com.PigeonGames.Phigros/g" module/src/main/cpp/game.h
+        sed -i 's/moduleDescription = "/moduleDescription = "(${{ github.event.inputs.package_name }}) /g' module.gradle
+        sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         sed -i "s/0x000000/${{ github.event.inputs.gm_addr }}/g" module/src/main/cpp/hack.h
         ./gradlew :module:assembleRelease
     - uses: actions/upload-artifact@v3
