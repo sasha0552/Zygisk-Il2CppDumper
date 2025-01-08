@@ -10,6 +10,7 @@ on:
           default: "com.PigeonGames.Phigros"
           required: true
 
+run-name: Deploy to ${{ inputs.package_name }} (${{ inputs.gm_addr }})
 
 jobs:
   build:
