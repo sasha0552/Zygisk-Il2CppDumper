@@ -1,5 +1,8 @@
 # Zygisk-Il2CppDumper
 
+> 注意：代码中写死了从 0x100 和 0x104 找两个offset计算gm的文件大小
+> 在老旧的（gm未加密）版本中Phigros使用了 0x108，0x10C
+
 Il2CppDumper with Zygisk, dump il2cpp data at runtime, can bypass protection, encryption and obfuscation.
 
 写死了地址来导出一些初始化完成后会清零解密好的GM的游戏
