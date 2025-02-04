@@ -28,7 +28,7 @@ jobs:
         sed -i "s/com.game.packagename/${{ github.event.inputs.package_name }}/g" module/src/main/cpp/game.h
         sed -i "s/0x000000/${{ github.event.inputs.gm_addr }}/g" module/src/main/cpp/hack.h
         ./gradlew :module:assembleRelease
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.package_name }}-${{ inputs.gm_addr }}
         path: out/magisk_module_release/
