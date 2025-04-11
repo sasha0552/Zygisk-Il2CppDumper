@@ -1,11 +1,14 @@
 //
 // Created by Perfare on 2020/7/4.
 //
+// Modified by DJPadbit on 2024/08/02
+//
 
 #include "hack.h"
 #include "il2cpp_dump.h"
 #include "log.h"
 #include "xdl.h"
+#include "And64InlineHook.hpp"
 #include <cstring>
 #include <string>
 #include <ios>
@@ -20,6 +23,7 @@
 #include <sys/mman.h>
 #include <linux/unistd.h>
 #include <array>
+#include <vector>
 
 unsigned long get_module_base(const char * module_name) {
     FILE * fp;
@@ -42,21 +46,219 @@ unsigned long get_module_base(const char * module_name) {
     return addr;
 }
 
-void * hack_thread(const char * game_data_dir) {
+void hack_lib(const char * game_data_dir, std::string modName) {
+    std::string outPathRo = std::string(game_data_dir).append("/files/ro_").append(modName);
+    std::string outPathRw = std::string(game_data_dir).append("/files/").append(modName);
+
+    std::string line;
+    std::ifstream file("/proc/self/maps");
+    if (!file.is_open()) {
+        LOGI("hack_lib: couldn't open maps");
+        return;
+    }
+    LOGI("hack_lib: map open, looking for '%s'", modName.c_str());
+
+    struct segment {
+        unsigned long start_addr;
+        unsigned long size;
+        unsigned long offset;
+        bool writable;
+    };
+
+    std::vector<segment> segments;
+    unsigned long total_size = 0;
+
+    while (getline(file, line)) {
+        if (line.find(modName) != std::string::npos) {
+            segment seg;
+
+            int pos = line.find(" ");
+            std::string addr_st = line.substr(0,pos);
+            line.erase(0, pos+1); // eat
+            // start_addr-end_addr
+            pos = addr_st.find("-");
+            seg.start_addr = std::strtoul(addr_st.substr(0, pos).c_str(), NULL, 16);
+            seg.size = std::strtoul(addr_st.substr(pos+1).c_str(), NULL, 16) - seg.start_addr;
+            // perms
+            pos = line.find(" ");
+            std::string perms = line.substr(0,pos);
+            line.erase(0, pos+1); // eat
+            seg.writable = perms.find("w") != std::string::npos;
+            // offset
+            pos = line.find(" ");
+            std::string offset_st = line.substr(0,pos);
+            line.erase(0, pos+1); // eat
+
+            seg.offset = std::strtoul(offset_st.c_str(), NULL, 16);
+
+            unsigned long seg_last = seg.offset+seg.size;
+            if (seg_last > total_size)
+                total_size = seg_last;
+
+            LOGI("hack_lib: seg st:%lx, sz:%lx, of:%lx, w:%i", seg.start_addr, seg.size, seg.offset, seg.writable);
+
+            segments.push_back(seg);
+        }
+    }
+    file.close();
+
+    LOGI("hack_lib: tot_size: %lu", total_size);
+
+    char * data = new char[total_size];
+    if (!data) {
+        LOGI("hack_lib: can't allocate memory for dump");
+        return;
+    }
+
+    // Only do read-only segments first, then add potential modifications
+    for (segment &seg : segments) {
+        if (seg.writable)
+            continue;
+
+        LOGI("hack_lib: reading Ro segment: %lx", seg.start_addr);
+        char* start = reinterpret_cast<char*>(seg.start_addr);
+        std::memcpy(data+seg.offset, start, seg.size);
+    }
+
+    // Write out the Ro file
+    // Not really needed
+    /*LOGI("hack_lib: read all ro segs");
+    std::ofstream outfileRo(outPathRo, std::ios::binary | std::ios::out);
+    if (outfileRo.is_open()) {
+        outfileRo.write(data, total_size);
+        outfileRo.close();
+    } else {
+        LOGI("hack_lib: couldn't open ro outfile");
+    }*/
+
+    // Read the write segs now
+    for (segment &seg : segments) {
+        if (!seg.writable)
+            continue;
+
+        LOGI("hack_lib: reading Rw segment: %lx", seg.start_addr);
+        char* start = reinterpret_cast<char*>(seg.start_addr);
+        std::memcpy(data+seg.offset, start, seg.size);
+    }
+
+    // Write out the Rw file
+    LOGI("hack_lib: read all rw segs");
+    std::ofstream outfileRw(outPathRw, std::ios::binary | std::ios::out);
+    if (outfileRw.is_open()) {
+        outfileRw.write(data, total_size);
+        outfileRw.close();
+    } else {
+        LOGI("hack_lib: couldn't open rw outfile");
+    }
+
+    LOGI("hack_lib: cleanup");
+    delete[] data;
+}
+
+void hack_thread(const char * game_data_dir) {
     unsigned long base_addr;
     base_addr = get_module_base("libil2cpp.so");
-    
-    char * hack_addr = *(char **)(base_addr + GlobalMetadataAddr); 
+    LOGI("hack_thread: libil2cpp.so addr %lx", base_addr);
+
+    char * hack_addr = *(char **)(base_addr + GlobalMetadataAddr);
+    unsigned long codereg_addr = *(unsigned long*)(base_addr + CodeRegAddr);
+    unsigned long metareg_addr = *(unsigned long*)(base_addr + MetaRegAddr);
+    unsigned long codegenopt_addr = *(unsigned long*)(base_addr + CodeGenOptAddr);
+
+    LOGI("hack_thread: cr:%lx mr:%lx co:%lx", codereg_addr, metareg_addr, codegenopt_addr);
+    LOGI("hack_thread: -base cr:%lx mr:%lx co:%lx", codereg_addr-base_addr, metareg_addr-base_addr, codegenopt_addr-base_addr);
+
     auto outPath = std::string(game_data_dir).append("/files/global-metadata.dat");
     std::ofstream outfile(outPath, std::ios::binary | std::ios::out);
     if (outfile.is_open()) {
         // deref once to get correct pointer to GM
         const char * variable_data = reinterpret_cast < char * > (hack_addr);
-        int difinitionOffset_size = *(reinterpret_cast < const int * > (variable_data + 0x100));
-        int definitionsCount_size = *(reinterpret_cast < const int * > (variable_data + 0x104));
-        outfile.write(variable_data, difinitionOffset_size + definitionsCount_size);
+        int definitionOffset_size = *(reinterpret_cast < const int * > (variable_data + 0x108));
+        int definitionsCount_size = *(reinterpret_cast < const int * > (variable_data + 0x10C));
+        if (definitionsCount_size < 10) {
+            definitionOffset_size = *(reinterpret_cast < const int * > (variable_data + 0x100));
+            definitionsCount_size = *(reinterpret_cast < const int * > (variable_data + 0x104));
+        }
+        LOGI("hack_thread: defOffsetSize %x defCountSize %x", definitionOffset_size, definitionsCount_size);
+        outfile.write(variable_data, definitionOffset_size + definitionsCount_size);
         outfile.close();
     }
+}
+
+struct System_String_Fields {
+    int32_t length;
+    uint16_t start_char;
+};
+
+struct System_String_o {
+    void *klass;
+    void *monitor;
+    System_String_Fields fields;
+};
+
+struct Torappu_PlayerData_Fields {
+    System_String_o* m_logToken;
+    System_String_o* m_accessToken;
+    System_String_o* m_chatMask;
+    void* m_data;
+    void* m_rawData;
+    void* m_charIdInstMap;
+    void* m_existActSet;
+    void* m_existSandboxPermSet;
+    void* m_jsonSettings;
+    void* m_luaPlayerData;
+};
+
+struct Torappu_PlayerData_o {
+    void *klass;
+    void *monitor;
+    Torappu_PlayerData_Fields fields;
+};
+
+System_String_o* (*old_getChatMask)(Torappu_PlayerData_o*, const void*) = nullptr;
+
+std::string& getStringFromNet(System_String_o* in_string, std::string& out_string) {
+    int32_t size = in_string->fields.length;
+    uint16_t *start = &in_string->fields.start_char;
+
+    out_string.resize(size);
+    char *st = out_string.data();
+    for (int i=0;i<size;i++)
+        st[i] = start[i];
+
+    return out_string;
+}
+
+System_String_o* getChatMask_hook(Torappu_PlayerData_o* __this, void* method) {
+    LOGI("getChatMask_hook: hello");
+    if (!old_getChatMask) {
+        LOGE("getChatMask_hook: No old func ??? help");
+        return nullptr;
+    }
+    System_String_o* ret = old_getChatMask(__this, method);
+    LOGI("getChatMask_hook: Called old func, ret %lx", (unsigned long)ret);
+    if (ret != nullptr) {
+        std::string chatmask;
+        getStringFromNet(ret, chatmask);
+        LOGI("getChatMask_hook: data => '%s'", chatmask.c_str());
+    }
+    return ret;
+}
+
+void hack_chatmask() {
+    LOGI("hack_chatmask: entry");
+
+    if (old_getChatMask != nullptr) {
+        LOGI("hack_chatmask: Already hooked ??? fuck");
+        return;
+    }
+
+    unsigned long base_addr = get_module_base("libil2cpp.so");
+    LOGI("hack_chatmask: libil2cpp.so addr %lx", base_addr);
+    unsigned long getChatMask_addr = base_addr + GetChatMaskFuncAddr;
+
+    A64HookFunction((void *const)getChatMask_addr, (void *)getChatMask_hook, (void **)&old_getChatMask);
+    LOGI("hack_chatmask: Hooked getchatmask, res %lx", (unsigned long)old_getChatMask);
 }
 
 void hack_start(const char *game_data_dir) {
@@ -68,6 +270,9 @@ void hack_start(const char *game_data_dir) {
             il2cpp_api_init(handle);
             il2cpp_dump(game_data_dir);
             hack_thread(game_data_dir);
+            hack_lib(game_data_dir, "libil2cpp.so");
+            hack_lib(game_data_dir, "libanort.so");
+            hack_chatmask();
             break;
         } else {
             sleep(1);
